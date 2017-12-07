@@ -29,7 +29,8 @@ update=: monad define
 )
 
 
-randn2d=: 3 : 'M +"1 CC mp"(_ 1) randn y , 2'
+NB. y random vectors of a x-dimensional multivariate normal distribution
+randmultin=: 4 : 'M +"1 CC mp"(_ 1) randn y , x'
 
 el=: dyad define NB. ordinate of the std form ellipse
   'a b'=. x
