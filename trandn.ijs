@@ -4,21 +4,35 @@ load '~home/documents/shared/j/mixtures/randn.ijs'
 
 DATASET=: monad define
 N0=: conew 'RandN'
-create__N0 (4 _1);2 2$0.5 0 0 0.5
-X0=: 2 randmultin__N0 100
+create__N0 (2 0);2 2$0.5 0 0 0.5
+X0=: 2 randmultin__N0 50
 N1=: conew 'RandN'
 create__N1 (1 0.5);2 2$3 0.6 0.6 1
-X1=: 2 randmultin__N1 100000
+X1=: 2 randmultin__N1 1000
 X=: X0 , X1
 )
-
-UF=: ] ` ( ((K*#T) $ 1,(<:K)#0) & ( (,|:(i.K) CP T)} ) ) @. (0<#T)
 
 CIM=: (],rndcenter)^:(]`(<:@:[)`(,:@:seed@:])) NB. compute initial means à la kmeans++
 seed=: {~ ?@#
 rndcenter=: [ {~ [: wghtprob [: <./ dst/~
 
+UF=: monad define
+if. #T do.
+NB. each cell of CU contains Coordinates of F that must be Updated
+NB. the first element of a cell is the one for which the teacher gives probability TP
+NB. the other K-1 elements will share equally 1-TP
+CU=. ({: ,~"0 {. , {. ihole K"_)"1 T
+NB. each cell of NP contains the new probabilities
+NB. for the elements of the corresponding cell of IM
+NP0=. [ * F {~ [: B1 ({.@])
+NP1=. (1-[ % (<:K)"_) * F {~ [: B1 }.@]
+NP=. (% +/)"1 TP (NP0,NP1)"0 2 CU
+F=: (,NP) (,B1 CU)} F
+end.
+)
+
 INIT=: monad define
+class=: 2 1 $ i.2
 K=: 2
 d=:{:$X
 t=:0
@@ -26,35 +40,38 @@ M=: K CIM X
 C0=: (+/%#) */~"1 (] -"1 +/%#) X
 C=: K#,:C0
 F=: K#,:(#X)#%K NB. initial fuzzyness
-T=: i.6 NB. teacher
-F=: UF F
-NB.F=: (((#X0)#0) , (#X1)#1) ,: ((#X0)#1) , (#X1)#0 NB. perfect teacher
-N=: +/"1 F
-N=: (#X0) , (#X1) NB. perfect knowledge of the ratio
-L=: __
+T=: (0 ,"0 i.0) , 1 ,"(0) (#X0)+i.0 NB. teacher
+TP=:(#T)#1 NB. teacher confidence probability
+UF''
+NB.F=: (((#X0)#1) , (#X1)#0) ,: ((#X0)#0) , (#X1)#1 NB. perfect teacher
+AR=: 0.05 NB. approximate apriori knowledge of the ratio
+ARTOL=: 0.1 NB. tolerance on AR
+NR=: 2 2 $ 0,#X
+NR=: /:~"1 |: (AR ([ (pstv@-,+) *) ARTOL) ([: (-/ ,~ {:) ] , *)"0 #X NB. range of possible values for N
+UN=: (putin"0 1)&NR NB. update N to put it in the range NR
 CNV=:0
 draw''
 )
 
 I=: monad define
 D=: (K#,:X) -"1 M
-NB.N=: +/"1 F
+N=: UN +/"1 F
 R=: N % #X
 MLC=: N %~ +/"3 F * */~"1 D
 PC=: C
 C=: MLC
-SIN=: I. (AME"1^:2@:| < 1e_1"_) C
+DC=: det C
+SIN=: I. DC < 1e_1
 C=: C0 SIN} C
 IC=: %.C
-DC=: det C
+DC=: (det ` (DC"_) @. (0=#SIN)) C
 EXP=: ^ --:1 * IC QF D
 PDF=: EXP * ((o.2)^--:d) * %%:DC
 F=: (%"1 +/) R*PDF
-F=: UF F
+UF''
 PM=: M
 M=: N %~ +/"2 (K#,:X) *"(3 2) F
-L=: +/^.+/ R*PDF
-CNV=: *./> (C;M) ([: *./@:,@:<&1e_1@:| -)e (PC;PM)
+CNV=: *./> (C;M) ([: *./@:,@:<&1e_2@:| -)e (PC;PM)
 t=: >:t
 )
 
@@ -63,13 +80,19 @@ while. (-.CNV) *. t<100 do. I'' end.
 draw''
 )
 
+OC=: monad define NB. operating characteristics
+LR=:(%"1 +/)PDF NB. likelihood ratios
+OCPT=: 3 : '((-/ % (#X1)"_) , {: % (#X0)"_) (#,+/) <&(#X0) I. ({.LR)>y'
+plot <"1|:OCPT"(0) steps 0 1 50
+)
+
 END=: monad define
 destroy__N1''
 destroy__N2''
 )
 
 class_color=:'blue';'red'
-class_style=:'markersize 0.3';'markersize 0.15'
+class_style=:'markersize 0.1';'markersize 0.1'
 estimate_color=:'green';'yellow'
 
 draw_class=: monad define
