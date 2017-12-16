@@ -17,31 +17,27 @@ seed=: {~ ?@#
 rndcenter=: [ {~ [: wghtprob [: <./ dst/~
 
 UF=: monad define
-if. #T do.
-NB. each cell of CU contains Coordinates of F that must be Updated
-NB. the first element of a cell is the one for which the teacher gives probability TP
-NB. the other K-1 elements will share equally 1-TP
-CU=. ({: ,~"0 {. , {. ihole K"_)"1 T
-NB. each cell of NP contains the new probabilities
-NB. for the elements of the corresponding cell of IM
-NP0=. [ * F {~ [: B1 ({.@])
-NP1=. (1-[ % (<:K)"_) * F {~ [: B1 }.@]
-NP=. (% +/)"1 TP (NP0,NP1)"0 2 CU
-F=: (,NP) (,B1 CU)} F
+if. #,>T do.
+toprob=: [: (%"1+/)@as [ {~ ]
+merge=: (<@;)"1 @: |:
+m0=: merge > CLS ([: ((,@(F&toprob));(<@,)) [ CP ])"1 e T
+m1=: merge > ICLS ([: ((#@, # 0:);(<@,)) [ CP ])"1 e T
+F=: F ((>@{.@])`(>@{:@])`([))} merge m0,:m1
 end.
 )
 
 INIT=: monad define
-class=: 2 1 $ i.2
+CLS=: (,0);,1 NB. classes
+MOD=: ~.,>CLS NB. modes
+ICLS=: (MOD&notin)e CLS NB. the modes that don't belong to a class ("Inverse" of class) 
 K=: 2
 d=:{:$X
-t=:0
+t=:0 NB. time
+T=: (i.10) ; (#X0)+i.100 NB. teacher
 M=: K CIM X
 C0=: (+/%#) */~"1 (] -"1 +/%#) X
 C=: K#,:C0
 F=: K#,:(#X)#%K NB. initial fuzzyness
-T=: (0 ,"0 i.0) , 1 ,"(0) (#X0)+i.0 NB. teacher
-TP=:(#T)#1 NB. teacher confidence probability
 UF''
 NB.F=: (((#X0)#1) , (#X1)#0) ,: ((#X0)#0) , (#X1)#1 NB. perfect teacher
 AR=: 0.05 NB. approximate apriori knowledge of the ratio

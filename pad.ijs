@@ -31,3 +31,18 @@ create__N1 (1 0.5);2 2$3 0.6 0.6 1
 X1=: 2 randmultin__N1 100000
 X=: X0 , X1
 )
+
+F=: F , {. F
+F=: 0.1 0.2 0.3 * F
+
+CLS=: (,0 1);,2
+MOD=: ~.,>CLS
+ICLS=: (MOD&notin)e CLS
+NB.T=:(i.3) ; $0
+NB.T=:(i.3) ; 10+i.2
+T=: (i.0) ; i.0
+toprob=: [: (%"1+/)@as [ {~ ]
+merge=: (<@;)"1 @: |:
+m0=: merge > CLS ([: ((,@(F&toprob));(<@,)) [ CP ])"1 e T
+m1=: merge > ICLS ([: ((#@, # 0:);(<@,)) [ CP ])"1 e T
+F ((>@{.@])`(>@{:@])`([))} merge m0,:m1
