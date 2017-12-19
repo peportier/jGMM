@@ -18,40 +18,53 @@ rndcenter=: [ {~ [: wghtprob [: <./ dst/~
 
 UF=: monad define
 if. #,>T do.
-toprob=: [: (%"1+/)@as [ {~ ]
+toprob=: [: (%"1+/)@as {
 merge=: (<@;)"1 @: |:
-m0=: merge > CLS ([: ((,@(F&toprob));(<@,)) [ CP ])"1 e T
-m1=: merge > ICLS ([: ((#@, # 0:);(<@,)) [ CP ])"1 e T
+applyToCP=: 1 : '([: ((,@:u) ; (<@,)) CP)"1'
+m0=: merge > CLS  (toprob&F) applyToCP e T
+m1=: merge > ICLS (0:"0)     applyToCP e T
 F=: F ((>@{.@])`(>@{:@])`([))} merge m0,:m1
 end.
+)
+
+UN=: monad define
+bn=. ({"0 1)&N e CLS             NB. boxed # of objects (one box per class)
+mr=. (%+/)e bn                   NB. ratio of the modes within a class
+nc=. > ([: +/ ] {"0 1 N"_) e CLS NB. # of objects per class
+rnc=. AR * +/N                   NB. rectified # of objects per class
+irc=. I.*rnc                     NB. IO rectified classes
+icc=. (i.#CLS) notin irc         NB. IO classes used for compensation
+drm=. ; (irc{CLS) ([: |: ,:)e (irc{mr) *e irc{rnc-nc NB. deltas for the rectified modes
+cost=. - +/ {:"1 drm             NB. cost of the rectifications, to be compensated with the remaining modes
+ccr=. (%+/) ; +/e icc { bn       NB. ratios of the classes used for compensation
+dcm=. ; (icc{CLS) ([: |: ,:)e (icc { mr) *e cost * ccr NB. deltas for the compensating modes
+bion=: B1@{."1                   NB. extract boxed indexes of n from dcm or drm
+N=: (drm,dcm) (({:"1@[ + bion@[ { ]) ` (bion@[) ` ])} N
 )
 
 INIT=: monad define
 CLS=: (,0);,1 NB. classes
 MOD=: ~.,>CLS NB. modes
-ICLS=: (MOD&notin)e CLS NB. the modes that don't belong to a class ("Inverse" of class) 
+ICLS=: (MOD&notin)e CLS NB. modes not in a class ("Inverse" of class) 
 K=: 2
 d=:{:$X
 t=:0 NB. time
-T=: (i.10) ; (#X0)+i.100 NB. teacher
+T=: (i.5) ; (#X0)+i.100 NB. teacher
 M=: K CIM X
 C0=: (+/%#) */~"1 (] -"1 +/%#) X
 C=: K#,:C0
-F=: K#,:(#X)#%K NB. initial fuzzyness
+F=: K#,:(#X)#%K NB. initial Fuzzyness (Fuzzy to crisp association between data and models)
 UF''
 NB.F=: (((#X0)#1) , (#X1)#0) ,: ((#X0)#0) , (#X1)#1 NB. perfect teacher
-AR=: 0.05 NB. approximate apriori knowledge of the ratio
-ARTOL=: 0.1 NB. tolerance on AR
-NR=: 2 2 $ 0,#X
-NR=: /:~"1 |: (AR ([ (pstv@-,+) *) ARTOL) ([: (-/ ,~ {:) ] , *)"0 #X NB. range of possible values for N
-UN=: (putin"0 1)&NR NB. update N to put it in the range NR
+AR=: 0.05 0 NB. a priori knowledge of the ratio
 CNV=:0
 draw''
 )
 
 I=: monad define
 D=: (K#,:X) -"1 M
-N=: UN +/"1 F
+N=: +/"1 F
+UN''
 R=: N % #X
 MLC=: N %~ +/"3 F * */~"1 D
 PC=: C

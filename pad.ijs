@@ -35,14 +35,20 @@ X=: X0 , X1
 F=: F , {. F
 F=: 0.1 0.2 0.3 * F
 
-CLS=: (,0 1);,2
-MOD=: ~.,>CLS
-ICLS=: (MOD&notin)e CLS
-NB.T=:(i.3) ; $0
-NB.T=:(i.3) ; 10+i.2
-T=: (i.0) ; i.0
-toprob=: [: (%"1+/)@as [ {~ ]
-merge=: (<@;)"1 @: |:
-m0=: merge > CLS ([: ((,@(F&toprob));(<@,)) [ CP ])"1 e T
-m1=: merge > ICLS ([: ((#@, # 0:);(<@,)) [ CP ])"1 e T
-F ((>@{.@])`(>@{:@])`([))} merge m0,:m1
+c=: (0 1);(2 3 4);,5   NB. classes
+n=:  1 1   3 3 2   2   NB. # of objects per mode
+ar=: 0.2   0       0.1 NB. a priori ratio, 0 when no a priori
+
+((1 2);(2 3 2);,2) -: bn=: ({"0 1)&n e c    NB. boxed # of objects (one box per class)
+mr=: (%+/)e bn                              NB. ratio of the modes within a class
+3   7 2   -: nc=: > ([: +/ ] {"0 1 n"_) e c NB. # of objects per class
+2.4 0 1.2 -: rnc=: ar * +/n                 NB. rectified # of objects per class
+0     2   -: irc=: I.*rnc                   NB. IO rectified classes
+1         -: icc=: (i.#c) notin irc         NB. IO classes used for compensation
+drm=: ; (irc{c) ([: |: ,:)e (irc{mr) *e irc{rnc-nc NB. deltas for the rectified modes
+cost=: - +/ {:"1 drm NB. cost of the rectifications, to be compensated with the remaining modes
+ccr=: (%+/) ; +/e icc { bn NB. ratios of the classes used for compensation
+dcm=: ; (icc{c) ([: |: ,:)e (icc { mr) *e cost * ccr NB. deltas for the compensating modes
+bion=: B1@{."1 NB. extract boxed indexes of n from dcm or drm
+n=: (drm,dcm) (({:"1@[ + bion@[ { ]) ` (bion@[) ` ])} n
+
