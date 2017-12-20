@@ -52,3 +52,10 @@ dcm=: ; (icc{c) ([: |: ,:)e (icc { mr) *e cost * ccr NB. deltas for the compensa
 bion=: B1@{."1 NB. extract boxed indexes of n from dcm or drm
 n=: (drm,dcm) (({:"1@[ + bion@[ { ]) ` (bion@[) ` ])} n
 
+LR=:(%"1 +/)PDF NB. likelihood ratios
++/({.LR>0.8) *. TRUTH
+TP=: 3 : '+/({.LR>y) *. TRUTH'
+FP=: 3 : '+/({.LR>y) *. -.TRUTH'
+FN=: 3 : '(+/TRUTH)-TP y'
+PR=: TP % TP + FP
+RC=: TP % TP + FN

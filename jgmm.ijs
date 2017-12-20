@@ -10,6 +10,9 @@ N1=: conew 'RandN'
 create__N1 (1 0.5);2 2$3 0.6 0.6 1
 X1=: 2 randmultin__N1 1000
 X=: X0 , X1
+PERM=: ?~ #X
+X=: PERM { X
+TRUTH=: PERM { ((#X0)#1),(#X1)#0
 )
 
 CIM=: (],rndcenter)^:(]`(<:@:[)`(,:@:seed@:])) NB. compute initial means à la kmeans++
@@ -49,13 +52,15 @@ ICLS=: (MOD&notin)e CLS NB. modes not in a class ("Inverse" of class)
 K=: 2
 d=:{:$X
 t=:0 NB. time
-T=: (i.5) ; (#X0)+i.100 NB. teacher
+rsel=. [ {~ ] ? #@[ NB. random selection of y elements of x
+T=: ((I.TRUTH) rsel 5) ; (I.-.TRUTH) rsel 100
+NB.T=: (i.5) ; (#X0)+i.100 NB. teacher
 M=: K CIM X
 C0=: (+/%#) */~"1 (] -"1 +/%#) X
 C=: K#,:C0
 F=: K#,:(#X)#%K NB. initial Fuzzyness (Fuzzy to crisp association between data and models)
 UF''
-NB.F=: (((#X0)#1) , (#X1)#0) ,: ((#X0)#0) , (#X1)#1 NB. perfect teacher
+NB.F=: TRUTH ,: -.TRUTH NB. perfect teacher
 AR=: 0.05 0 NB. a priori knowledge of the ratio
 CNV=:0
 draw''
@@ -93,6 +98,16 @@ OC=: monad define NB. operating characteristics
 LR=:(%"1 +/)PDF NB. likelihood ratios
 OCPT=: 3 : '((-/ % (#X1)"_) , {: % (#X0)"_) (#,+/) <&(#X0) I. ({.LR)>y'
 plot <"1|:OCPT"(0) steps 0 1 50
+)
+
+PRRC=: monad define NB. precision-recall curve
+LR=:(%"1 +/)PDF NB. likelihood ratios
+TP=: 3 : '+/({.LR>y) *. TRUTH'
+FP=: 3 : '+/({.LR>y) *. -.TRUTH'
+FN=: 3 : '(+/TRUTH)-TP y'
+PR=: TP % TP + FP
+RC=: TP % TP + FN
+plot <"1|:(RC,PR)"0 steps 0 1 100
 )
 
 END=: monad define
