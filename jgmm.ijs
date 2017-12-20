@@ -1,5 +1,5 @@
 load 'plot trig numeric'
-load '~home/documents/shared/j/mixtures/math.ijs'
+load '~home/documents/shared/j/mixtures/utils.ijs'
 load '~home/documents/shared/j/mixtures/randn.ijs'
 
 DATASET=: monad define

@@ -1,6 +1,9 @@
+NB. draw values from a multivariate normal distribution
+NB. with mean vector M and covariance matrix C
+NB. find coordinates of the 2-sigma concentration ellipse
 coclass 'RandN'
 
-load '~home/documents/shared/j/mixtures/math.ijs'
+load '~home/documents/shared/j/mixtures/utils.ijs'
 
 randu=: (?@$&0) :((p.~ -~/\)~ $:)
 rande=: -@^.@randu : (* $:)
@@ -9,7 +12,7 @@ randn=: (($,) +.@:(%:@(2&rande) r. 0 2p1&randu)@>.@-:@(*/)) : (p. $:)
 require 'math/lapack'
 require 'math/lapack/potrf'
 chol=: potrf_jlapack_
-require 'math/lapack/geev' NB. TODO replace by syev
+require 'math/lapack/geev'
 eig=: geev_jlapack_
 
 create=: monad define
@@ -28,11 +31,11 @@ update=: monad define
                         NB. IC -: R mp L mp |:R
 )
 
-
+NB. https://en.wikipedia.org/wiki/Multivariate_normal_distribution#Drawing_values_from_the_distribution
 NB. y random vectors of a x-dimensional multivariate normal distribution
 randmultin=: 4 : 'M +"1 CC mp"(_ 1) randn y , x'
 
-el=: dyad define NB. ordinate of the std form ellipse
+el=: dyad define NB. ordinate of an ellipse in std form
   'a b'=. x
   %: (*:b) * 1 - (*:y) % *:a
 )
