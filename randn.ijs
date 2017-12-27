@@ -32,8 +32,8 @@ update=: monad define
 )
 
 NB. https://en.wikipedia.org/wiki/Multivariate_normal_distribution#Drawing_values_from_the_distribution
-NB. y random vectors of a x-dimensional multivariate normal distribution
-randmultin=: 4 : 'M +"1 CC mp"(_ 1) randn y , x'
+NB. y random vectors of a #M-dimensional multivariate normal distribution
+randmultin=: 3 : 'M +"1 CC mp"(_ 1) randn y , #M'
 
 el=: dyad define NB. ordinate of an ellipse in std form
   'a b'=. x
