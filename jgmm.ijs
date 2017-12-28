@@ -52,7 +52,7 @@ toprob=: [: (%"1+/)@as {
 merge=: (<@;)"1 @: |:
 NB. apply u to the cartesian product of x and y,
 tocp=: 1 : '([: ((,@:u) ; (<@,)) CP)"1'
-m0=: merge > class  (toprob&F) tocp e teacher
+m0=: merge > class  (toprob&f) tocp e teacher
 m1=: merge > iclass (0:"0)     tocp e teacher
 f=: f ((>@{.@])`(>@{:@])`([))} merge m0,:m1
 end.
@@ -70,7 +70,7 @@ icc=. (i.#class) notin irc       NB. IO classes used for compensation
 drm=. ; (irc{class) ([: |: ,:)e (irc{mr) *e irc{rnc-nc NB. deltas for the rectified modes
 cost=. - +/ {:"1 drm             NB. cost of the rectifications, to be compensated with the remaining modes
 ccr=. (%+/) ; +/e icc { bn       NB. ratios of the classes used for compensation
-dcm=. ; (icc{CLS) ([: |: ,:)e (icc { mr) *e cost * ccr NB. deltas for the compensating modes
+dcm=. ; (icc{class) ([: |: ,:)e (icc { mr) *e cost * ccr NB. deltas for the compensating modes
 bion=: B1@{."1                   NB. extract boxed indexes of n from dcm or drm
 n=: (drm,dcm) (({:"1@[ + bion@[ { ]) ` (bion@[) ` ])} n
 )
@@ -78,31 +78,49 @@ n=: (drm,dcm) (({:"1@[ + bion@[ { ]) ` (bion@[) ` ])} n
 init=: monad define
 t=:0 NB. time
 rsel=. [ {~ ] ? #@[ NB. random selection of y elements of x
-teacher=: (truth&([: I. [: +./ ="1 0)e class) rsel e (10;200)
+teacher=: (truth&([: I. [: +./ ="1 0)e class) rsel e (25;25)
 m=: k cim xs
 c0=: (+/%#) */~"1 (] -"1 +/%#) xs
 c=: k#,:c0
 f=: k#,:(#xs)#%k NB. initial Fuzzyness
 uf''
 NB.f=: (="1 0 /:~@~.) truth NB. perfect teacher
-ar=: 0.05 0 NB. a priori knowledge of the class ratio
+ar=: 0 0 NB. a priori knowledge of the class ratio
+sin=: $0 NB. ISO the SINgular covariance matrices
+sinrepair=: 0
 conv=:0 NB. convergence, boolean
 draw''
 )
 
 iter=: monad define
-d=: (k#,:xs) -"1 m
 n=: +/"1 f
 un''
 r=: n % #xs
-mlc=: n %~ +/"3 f * */~"1 d NB. maximum likelihood estimate of the covariances
+if. #sin do.
+sin2=: sin #~ 1 > sin { n NB. ISO of models, singular on previous iter, and still covering no objects
+ if. #sin2 do.
+ largemodels=: (#sin2) {. \:detc
+ c=: c0 sin2} c
+ m=: (largemodels{m) sin2} m
+ sinrepair=: 1
+ end.
+end.
+d=: (k#,:xs) -"1 m
+mlc=: n %~ +/"3 f * */~"1 d NB. max likelihood estimate of the covariances
 pc=: c
 c=: mlc
-detc=: det c
-sin=: I. detc < 1e_1 NB. indicator for the covariances that became SINgular
-c=: c0 sin} c
+NB.detc=: det c
+NB.sin=: I. detc < 1e_1
+if. sinrepair do.
+c=: c0 sin2} c
+sinrepair=: 0
+else.
+sin=: I. n<1
+c=: (c0%20) sin} c
+end.
 invc=: %.c
-detc=: (det ` (detc"_) @. (0=#sin)) c
+NB.detc=: (det ` (detc"_) @. (0=#sin)) c
+detc=: det c
 exp=: ^ --:1 * invc QF d
 pdf=: exp * ((o.2)^--:dim) * %%:detc
 f=: (%"1 +/) r*pdf
@@ -135,11 +153,11 @@ pr=: tp % tp + fp
 rc=: tp % tp + fn
 data=. 0 1 ,~ }: (rc,pr)"0 steps 0 1 100 NB. data for the parametric precision-recall curve. For recall 0 the precision is 1.
 +/ 2 (|@-/ (-:@*/@[ + {.@[ * ]) {:@{.)\ data
-NB.'stick,line' plot <"1|:(rc,pr)"0 steps 0 1 10
+NB.'stick,line' plot <"1|:data
 )
 
 end0=: monad define
-n=: ". 'n',":y
+n=. ". 'n',":y
 destroy__n''
 )
 
@@ -158,8 +176,8 @@ draw_mode"0 >y{class
 )
 
 draw_mode=: monad define
-obj=: ". 'n',":y
-dat=: ". 'x',":y
+obj=. ". 'n',":y
+dat=. ". 'x',":y
 pd 'color ',color
 pd 'type line ; pensize 3'
 pd cellipse__obj''
