@@ -60,3 +60,5 @@ draw''
 
 c0 sin} c
 (m {~ I. -. (>./ detc) i. detc) sin} m
+
+1e_1 ([: *./@, [ > |@-/@]) m,:pm

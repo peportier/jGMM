@@ -65,8 +65,8 @@ bn=. ({"0 1)&n e class           NB. boxed # of objects (one box per class)
 mr=. (%+/)e bn                   NB. ratio of the modes within a class
 nc=. > ([: +/ ] {"0 1 n"_) e class NB. # of objects per class
 rnc=. ar * +/n                   NB. rectified # of objects per class
-irc=. I.*rnc                     NB. IO rectified classes
-icc=. (i.#class) notin irc       NB. IO classes used for compensation
+irc=. I.*rnc                     NB. ISO rectified classes
+icc=. (i.#class) notin irc       NB. ISO classes used for compensation
 drm=. ; (irc{class) ([: |: ,:)e (irc{mr) *e irc{rnc-nc NB. deltas for the rectified modes
 cost=. - +/ {:"1 drm             NB. cost of the rectifications, to be compensated with the remaining modes
 ccr=. (%+/) ; +/e icc { bn       NB. ratios of the classes used for compensation
@@ -75,19 +75,22 @@ bion=: B1@{."1                   NB. extract boxed indexes of n from dcm or drm
 n=: (drm,dcm) (({:"1@[ + bion@[ { ]) ` (bion@[) ` ])} n
 )
 
-init=: monad define
-t=:0 NB. time
+initteacher=: monad define
 rsel=. [ {~ ] ? #@[ NB. random selection of y elements of x
 teacher=: (truth&([: I. [: +./ ="1 0)e class) rsel e (25;25)
+)
+
+init=: monad define
+t=:0 NB. time
 m=: k cim xs
 c0=: (+/%#) */~"1 (] -"1 +/%#) xs
+csensor=: c0%25 NB. covariance corresponding to the sensor precision
 c=: k#,:c0
 f=: k#,:(#xs)#%k NB. initial Fuzzyness
 uf''
 NB.f=: (="1 0 /:~@~.) truth NB. perfect teacher
 ar=: 0 0 NB. a priori knowledge of the class ratio
-sin=: $0 NB. ISO the SINgular covariance matrices
-sinrepair=: 0
+sinned=: $0
 conv=:0 NB. convergence, boolean
 draw''
 )
@@ -96,38 +99,27 @@ iter=: monad define
 n=: +/"1 f
 un''
 r=: n % #xs
-if. #sin do.
-sin2=: sin #~ 1 > sin { n NB. ISO of models, singular on previous iter, and still covering no objects
- if. #sin2 do.
- largemodels=: (#sin2) {. \:detc
- c=: c0 sin2} c
- m=: (largemodels{m) sin2} m
- sinrepair=: 1
- end.
-end.
 d=: (k#,:xs) -"1 m
 mlc=: n %~ +/"3 f * */~"1 d NB. max likelihood estimate of the covariances
 pc=: c
 c=: mlc
-NB.detc=: det c
-NB.sin=: I. detc < 1e_1
-if. sinrepair do.
-c=: c0 sin2} c
-sinrepair=: 0
-else.
-sin=: I. n<1
-c=: (c0%20) sin} c
-end.
-invc=: %.c
-NB.detc=: (det ` (detc"_) @. (0=#sin)) c
+c=: csensor sinned} c
 detc=: det c
+sin=: I. detc < 1e_1
+sinned=: sinned , sin
+msinned=: sinned { m
+c=: csensor sin} c
+invc=: %.c
+detc=: (det ` (detc"_) @. (0=#sin)) c
 exp=: ^ --:1 * invc QF d
 pdf=: exp * ((o.2)^--:dim) * %%:detc
 f=: (%"1 +/) r*pdf
 uf''
 pm=: m
 m=: n %~ +/"2 (k#,:xs) *"(3 2) f
-conv=: *./> (c;m) ([: *./@:,@:<&1e_2@:| -)e (pc;pm)
+m=: msinned sinned} m
+hasconv=: [: *./@, [ > |@-/@]
+conv=: (1e_1 hasconv m,:pm) *. 1e_2 hasconv c,:pc
 t=: >:t
 )
 
@@ -145,7 +137,9 @@ plot <"1|:pt"(0) steps 0 1 50
 
 prauc=: monad define NB. area under the precision-recall curve
 lr=:(%"1 +/)pdf NB. likelihood ratios
-class0=: +./ truth ="1 0 >{.class
+mask=: 0 (,>teacher)} 1 #~ #truth NB. to remove the data points known to the teacher
+lr=: mask #"1 lr
+class0=: +./ (mask#truth) ="1 0 >{.class
 tp=: 3 : '+/({.lr>y) *. class0'
 fp=: 3 : '+/({.lr>y) *. -.class0'
 fn=: 3 : '(+/class0)-tp y'
