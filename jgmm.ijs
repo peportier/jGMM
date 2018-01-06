@@ -110,7 +110,6 @@ nbclass=: 2
 trueclass=: class=: (,0);(,1)
 initdataset''
 initteacher (10;200)
-AR=: 0 0 NB. a priori knowledge of the class ratio
 )
 
 dataset2=: 3 : 0
@@ -119,7 +118,6 @@ nbclass=: 2
 trueclass=: class=: (0 1 2);(3 4 5)
 initdataset''
 initteacher (25;25)
-AR=: 0 0 NB. a priori knowledge of the class ratio
 )
 
 NB. Compute Initial Means à la kmeans++
@@ -143,23 +141,6 @@ F=: F ((>@{.@])`(>@{:@])`([))} merge m0,:m1
 end.
 )
 
-NB. update N, the Number of objects associated with each mode,
-NB. given the prior knowledge of some of the ratios
-UN=: monad define
-BN=. ({"0 1)&N each class             NB. boxed # of objects (one box per class)
-MR=. (%+/)each BN                     NB. ratio of the modes within a class
-NC=. > ([: +/ ] {"0 1 N"_) each class NB. # of objects per class
-RNC=. AR * +/N                        NB. rectified # of objects per class
-IRC=. I.*RNC                          NB. ISO rectified classes
-ICC=. (i.#class) notin IRC            NB. ISO classes used for compensation
-DRM=. ; (IRC{class) ([: |: ,:)each (IRC{MR) *each IRC{RNC-NC NB. deltas for the rectified modes
-cost=. - +/ {:"1 DRM             NB. cost of the rectifications, to be compensated with the remaining modes
-CCR=. (%+/) ; +/each ICC { BN         NB. ratios of the classes used for compensation
-DCM=. ; (ICC{class) ([: |: ,:)each (ICC { MR) *each cost * CCR NB. deltas for the compensating modes
-BION=: B1@{."1                        NB. extract boxed indexes of n from dcm or drm
-N=: (DRM,DCM) (({:"1@[ + BION@[ { ]) ` (BION@[) ` ])} N
-)
-
 init=: monad define
 t=:0 NB. time
 M=: K CIM X
@@ -176,7 +157,6 @@ conv=:0 NB. convergence, boolean
 
 iter=: monad define
 N=: +/"1 F
-UN''
 R=: N % #X
 D=: (K#,:X) -"1 M
 MLC=: N %~ +/"3 F * */~"1 D NB. max likelihood estimate of the covariances
