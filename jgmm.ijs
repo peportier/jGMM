@@ -83,11 +83,11 @@ create__n }.y
 )
 
 mkdataset=: monad define
-isomode=. i.#y NB. indexes of the modes
+isomode=. i.#y
 isomode mkobj"0 1 y
 X=: ". }: , ([: ,&',' [: 'x'&, ":)"(0) isomode
 perm=: ?~ #X
-X=: perm { X NB. the all dataset in a random permutation
+X=: perm { X NB. random permutation of the dataset
 truth=: perm { isomode #~ ". }: , ([: ,&'),' [: '(#x'&, ":)"(0) isomode
 )
 
@@ -98,26 +98,37 @@ K=: #mode
 dim=:{:$X
 )
 
+NB. y is a boxed list of the number of examples known a priori for each class
+initteacher=: monad define
+rsel=. [ {~ ] ? #@[ NB. random selection of y elements of x
+teacher=: (truth&([: I. [: +./ ="1 0)each class) rsel each y
+)
+
 dataset1=: 3 : 0 
 mkdataset (50;(0 2);2 2$0.5 0 0 0.5),:(1000;(_0.5 2);2 2$3 0.6 0.6 1)
-class=: (,0);(,1)
+nbclass=: 2
+trueclass=: class=: (,0);(,1)
 initdataset''
 initteacher (10;200)
+AR=: 0 0 NB. a priori knowledge of the class ratio
 )
 
 dataset2=: 3 : 0
 mkdataset (25;( 3  9);2 2$0.5 0 0 1),(20;(10  6);2 2$0.5 0 0 1),(5;(17 16);2 2$0.5 0 0 1),(20;( 3 12);2 2$1 0 0 0.5),(20;(12  6);2 2$1 0 0 0.5),:(10;(17 13);2 2$1 0 0 0.5)
-class=: (0 1 2);(3 4 5)
+nbclass=: 2
+trueclass=: class=: (0 1 2);(3 4 5)
 initdataset''
 initteacher (25;25)
+AR=: 0 0 NB. a priori knowledge of the class ratio
 )
 
 NB. Compute Initial Means à la kmeans++
 CIM=: (],rndcenter)^:(]`(<:@:[)`(,:@:seed@:]))
 seed=: {~ ?@#
-rndcenter=: [ {~ [: wghtprob [: <./ dist/~
-wghtprob=: 1&$: :((% {:)@:(+/\)@:] I. [ ?@$ 0:)"0 1 NB. rnd gen from lst of weights
+NB. generate x rnd integers in i.#y with probability proportional to list of weights y
+wghtprob=: 1&$: :((% {:)@:(+/\)@:] I. [ ?@$ 0:)"0 1
 dist=: +/&.:*:@:-"1
+rndcenter=: [ {~ [: wghtprob [: <./ dist/~
 
 NB. Update F, the Fuzzy to crisp association between data and models,
 NB. given the prior knowledge of a teacher
@@ -135,38 +146,32 @@ end.
 NB. update N, the Number of objects associated with each mode,
 NB. given the prior knowledge of some of the ratios
 UN=: monad define
-BN=. ({"0 1)&N each class           NB. boxed # of objects (one box per class)
-MR=. (%+/)each BN                   NB. ratio of the modes within a class
+BN=. ({"0 1)&N each class             NB. boxed # of objects (one box per class)
+MR=. (%+/)each BN                     NB. ratio of the modes within a class
 NC=. > ([: +/ ] {"0 1 N"_) each class NB. # of objects per class
-RNC=. AR * +/N                   NB. rectified # of objects per class
-IRC=. I.*RNC                     NB. ISO rectified classes
-ICC=. (i.#class) notin IRC       NB. ISO classes used for compensation
+RNC=. AR * +/N                        NB. rectified # of objects per class
+IRC=. I.*RNC                          NB. ISO rectified classes
+ICC=. (i.#class) notin IRC            NB. ISO classes used for compensation
 DRM=. ; (IRC{class) ([: |: ,:)each (IRC{MR) *each IRC{RNC-NC NB. deltas for the rectified modes
 cost=. - +/ {:"1 DRM             NB. cost of the rectifications, to be compensated with the remaining modes
-CCR=. (%+/) ; +/each ICC { BN       NB. ratios of the classes used for compensation
+CCR=. (%+/) ; +/each ICC { BN         NB. ratios of the classes used for compensation
 DCM=. ; (ICC{class) ([: |: ,:)each (ICC { MR) *each cost * CCR NB. deltas for the compensating modes
-BION=: B1@{."1                   NB. extract boxed indexes of n from dcm or drm
+BION=: B1@{."1                        NB. extract boxed indexes of n from dcm or drm
 N=: (DRM,DCM) (({:"1@[ + BION@[ { ]) ` (BION@[) ` ])} N
-)
-
-initteacher=: monad define NB. y is a boxed list of the number of examples known a priori for each class
-rsel=. [ {~ ] ? #@[ NB. random selection of y elements of x
-teacher=: (truth&([: I. [: +./ ="1 0)each class) rsel each y
 )
 
 init=: monad define
 t=:0 NB. time
 M=: K CIM X
 C0=: (+/%#) */~"1 (] -"1 +/%#) X
+('detmin';'detmax')=: (1e_4&* ; 1e4&*) det C0
 CSensor=: C0%25 NB. covariance corresponding to the sensor precision
 C=: K#,:C0
 F=: K#,:(#X)#%K NB. initial Fuzzyness
 UF''
 NB.F=: (="1 0 /:~@~.) truth NB. perfect teacher
-AR=: 0 0 NB. a priori knowledge of the class ratio
 sinned=: $0
 conv=:0 NB. convergence, boolean
-draw''
 )
 
 iter=: monad define
@@ -178,7 +183,7 @@ MLC=: N %~ +/"3 F * */~"1 D NB. max likelihood estimate of the covariances
 PC=: C
 C=: CSensor sinned} MLC
 detC=: det C
-sin=: I. detC < 1e_1
+sin=: I. (<&detmin +. >&detmax) detC
 sinned=: sinned , sin
 MSinned=: sinned { M
 C=: CSensor sin} C
@@ -197,29 +202,60 @@ t=: >:t
 
 run=: monad define
 while. (-.conv) *. t<100 do. iter'' end.
-draw''
+CE=: - +/^:2 > ([: (* ^.) [: +/ {&F) each class NB. classification entropy
 PRAUC''
 )
 
-occ=: monad define NB. operating characteristics curve
-lr=:(%"1 +/)pdf NB. likelihood ratios
-pt=. 3 : '((-/ % (#x1)"_) , {: % (#x0)"_) (#,+/) <&(#x0) I. ({.lr)>y'
-plot <"1|:pt"(0) steps 0 1 50
+metarun0=: monad define
+init''
+run''
+('LM';'LC';'LCE';'LAUC')=: (LM,M);(LC,C);(LCE,CE);(LAUC,AUC)
+)
+
+metarun1=: monad define
+init''
+run''
+('LM';'LC';'LCE';'LAUC')=: (,: M);(,: C);(,: CE);(,: AUC)
+metarun0^:9''
+NB. keep the results of the run with minimum classification entropy
+('M';'C';'CE';'AUC')=: ((i. <./) LCE)&{ each LM;LC;LCE;LAUC
+)
+
+metarun2=: monad define
+mkclass=: ([: i. each ;/) +each ([: ;/ 0: , [: }: +/\)
+classmask=: 0: = ; @: (i.each) @ ;
+modeinc=: nbmode=: nbclass # 1
+PCE=: _ [ CE=: 1e6
+('BM';'BC';'BCE';'BAUC';'BClass';'BMode')=: 6$a:
+nbiter=: 0
+while. (0 < +/modeinc) *. (PCE>CE) *. nbiter<10 do.
+  class=: mkclass nbmode
+  initdataset''
+  PCE=: CE
+  metarun1''
+  ('BM';'BC';'BCE';'BAUC';'BClass';'BMode')=: (BM,<M);(BC,<C);(BCE,<CE);(BAUC,<AUC);(BClass,<class);<(BMode,<mode)
+  modeinc=: > *./each (classmask nbmode) (<;.1) N>1 NB. ISO classes whose # of modes can increase
+  nbmode=: nbmode + modeinc
+  nbiter=: >: nbiter
+end.
+('M';'C';'CE';'AUC';'class';'mode')=: >@(((i. <./) >BCE)&{) each BM;BC;BCE;BAUC;BClass;<BMode
 )
 
 PRAUC=: monad define NB. area under the precision-recall curve
 LR=:(%"1 +/)PDF NB. likelihood ratios
-mask=: 0 (,>teacher)} 1 #~ #truth NB. to remove the data points known to the teacher
+mask=: 0 (;teacher)} 1 #~ #truth NB. to remove the data points known to the teacher
 LR=: mask #"1 LR
-class0=: +./ (mask#truth) ="1 0 >{.class
-TP=: 3 : '+/({.LR>y) *. class0'
-FP=: 3 : '+/({.LR>y) *. -.class0'
+class0=: +./ (mask#truth) ="1 0 >{.trueclass
+TP=: 3 : '+/(+./ (>0{class) { LR>y) *. class0'
+FP=: 3 : '+/(+./ (>0{class) { LR>y) *. -.class0'
 FN=: 3 : '(+/class0)-TP y'
 precision=: TP % TP + FP
 recall=: TP % TP + FN
-dat=. 0 1 ,~ }: (recall,precision)"0 steps 0 1 100 NB. data for the parametric precision-recall curve. For recall 0 the precision is 1.
-+/ 2 (|@-/ (-:@*/@[ + {.@[ * ]) {:@{.)\ dat NB. area under the PR curve
-NB.'stick,line' plot <"1|:dat
+clean=. (([: ~. {."1) |:@,: {."1 >.//. {:"1) NB. for equal values of recall keep the greater precision
+NB. data for the parametric precision-recall curve. For recall 0 the precision is 1.
+AUCData=: clean 0 1 ,~ }: (recall,precision)"0 steps 0 1 100
+AUC=: +/ 2 (|@-/ (-:@*/@[ + {.@[ * ]) {:@{.)\ AUCData NB. area under the PR curve
+NB.'stick,line' plot <"1|:AUCData
 )
 
 end0=: monad define
@@ -238,7 +274,7 @@ estimate_color=:'green';'yellow'
 draw_class=: monad define
 color=: >y{class_color
 style=: >y{class_style
-draw_mode"0 >y{class
+draw_mode"0 >y{trueclass
 )
 
 draw_mode=: monad define
