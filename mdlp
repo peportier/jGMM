@@ -1,0 +1,3 @@
+#!/bin/sh
+fn=`echo $1 | sed 's/\.[^.]*$//'`
+awk '{ if (/^```/) { i++; next } if ( i % 2 == 1) { print } }' $1 > $fn

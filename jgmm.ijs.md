@@ -1,3 +1,11 @@
+# JGMM
+
+We present a derivation of Gaussian [Mixture Model](https://en.wikipedia.org/wiki/Mixture_model) in the [J programming language](http://jsoftware.com/).
+The derivation will follow the work of [Leonid Perlovsky](https://en.wikipedia.org/wiki/Leonid_Perlovsky) on [Dynamic Logic](http://www.springer.com/fr/book/9783642228292).
+
+## Some basic utilities
+
+```
 load 'plot trig numeric'
 
 NB.utils......................................................................
@@ -12,6 +20,93 @@ id_z_=: =@i.              NB. identity matrix of size y
 MP_z_=: +/ . *            NB. matrix product
 det_z_=: -/ . *           NB. determinant
 QF_z_=: ] MP"1 [ MP"2 1 ] NB. quadratic form
+```
+
+## Multivariate normal distribution
+
+We provide some code to draw data from a multivariate normal distribution.
+From the uniform random number generator of `J`, we build a 1-dimensional normal random number generator. The verb `randn` comes from the addon `math/mt/rand.ijs`.
+
+We follow a ["widely used method"](https://en.wikipedia.org/wiki/Multivariate_normal_distribution#Drawing_values_from_the_distribution) (Wikipedia dixit), to draw random values from a multivariate normal distribution (see verb `randmultin`). The J/Lapack interface is used to compute the Cholesky decomposition of the covariance matrix.
+
+Finally, we compute the coordinates of the 2-sigma concentration ellipse for a 2d normal distribution (see verb `cellipse`). We only compute the points for the positive quadrant and we then proceed by symmetry.
+
+An ellipse is a set of points in a plane whose distances from two fixed points (viz. foci) add to a constant. We first consider the equation of an ellipse in standard form (i.e., centred on the origin and aligned with the axis of the orthonormal basis).
+
+![ellipse](media/ellipse-1.png)
+
+
+$$foci: (\pm c,0) \;with\; c>0$$
+\\[
+\begin{equation*}
+\begin{split}
+\sqrt{(x+c)^2+y^2}+\sqrt{(x-c)^2+y^2} & = 2a \\
+\frac{x^2}{a^2}+\frac{y^2}{b^2} & = 1 \;with\; b=\sqrt{a^2-c^2} \\
+y & = \sqrt{\left( 1 - \frac{x^2}{a^2} \right)b^2}
+\end{split}
+\end{equation*}
+\\]
+
+The verb `el` implements this last equation to compute the ordinate of an ellipse in standard form.
+
+The standard form equation of an ellipse can be written in matrix notation:
+\\[1=\frac{x^2}{a^2}+\frac{y^2}{b^2} = 
+\begin{bmatrix}x & y\end{bmatrix}
+\begin{bmatrix}
+\frac{1}{a^2} & 0 \\
+0 & \frac{1}{b^2}
+\end{bmatrix}
+\begin{bmatrix}x \\ y\end{bmatrix} =
+X^T \Lambda \, X\\]
+
+To model a generic 2d ellipse, we can start from a standard form one to which we apply a linear transformation combining translation, scaling and rotation. For convenience of notation, we will note the scaling factor $\sqrt{k}$, the translation vector $M$ and the rotation matrix $R$:
+
+\\[
+\begin{equation*}
+\begin{split}
+\tilde{X} & = M + \sqrt{k} RX \\
+X & = \sqrt{k}^{-1} R^T (\tilde{X}-M)
+\end{split}
+\end{equation*}
+\\]
+
+Thus, applying the linear transformation to the equation of the ellipse, we have:
+
+\\[
+\begin{equation*}
+\begin{split}
+X^T \Lambda \, X & = 1 \\
+\sqrt{k}^{-2} (\tilde{X}-M)^T R \Lambda R^T (\tilde{X}-M) & = 1 \\
+(\tilde{X}-M)^T R \Lambda R^T (\tilde{X}-M) & = k \;(Eq.1)\\
+\end{split}
+\end{equation*}
+\\]
+
+Let us introduce the probability density function of a 2d normal distribution with covariance $C$ and mean $M$. We use the notation $D$ (like "Difference") for $X-M$.
+$$G(X) = \frac{1}{2\pi \sqrt{det C}} \; exp \left[ -\frac{1}{2} D^T C^{-1} D \right]$$
+
+We recognise in the equation for the set of points of equal density the one of an ellipse:
+
+\\[
+\begin{equation*}
+\begin{split}
+& \;\;\;\;\; \left\{ X: G(X) = k_1 \right\} \\
+&= \left\{ X: D^T C^{-1} D = k \right\} \; with \; k=-2ln\left(2\pi k_1 \sqrt{det C}\right) \;(Eq.2)
+\end{split}
+\end{equation*}
+\\]
+
+Matching $(Eq.1)$ and $(Eq.2)$, we have: $C^{-1} \leftrightarrow R \Lambda R^T$, or equivalently: $C \leftrightarrow R \Lambda^{-1} R^T \; (Eq.3)$ (given that the inverse of an orthogonal matrix, here the rotation matrix, is its transpose).
+Therefore, to draw the concentration ellipse, we compute the eigen decomposition of the inverse of the covariance matrix. Then, we compute the coordinates of the standard form ellipse ($\Lambda$ gives $1/a^2$ and $1/b^2$) and we transform it with a scaling factor $\sqrt{k}$, a rotation $R$ and a translation $M$.
+
+Given a vector $v$, the projection of the data $X$ on $v$ is $v^T X$. The variance of the projected data is $v^T C v$ (see this very nice blog post about a [geometric interpretation of the covariance matrix](http://www.visiondummy.com/2014/04/geometric-interpretation-covariance-matrix/)). The $v$ maximising the covariance of the projected data is the largest eigenvector of $C$ (see this [straightforward derivation](https://en.wikipedia.org/wiki/Rayleigh_quotient#Formulation_using_Lagrange_multipliers) based on the method of Lagrange multipliers).
+
+Therefore, citing the [aforementioned article](http://www.visiondummy.com/2014/04/geometric-interpretation-covariance-matrix/): 
+> [...]the largest eigenvector of the covariance matrix always points into the direction of the largest variance of the data, and the magnitude of this vector equals the corresponding eigenvalue. The second largest eigenvector is always orthogonal to the largest eigenvector, and points into the direction of the second largest spread of the data.
+
+From $(Eq.3)$, we have that $a^2$ is the magnitude of the vector that points into the direction of the largest variance which is also, by definition, $\sigma_x^2$, the square of the standard deviation. Thus, we understand why we are speaking of the $\sqrt{k}\sigma$-concentration ellipse. With the code below (see verb `cellipse`), we draw the $2\sigma$-concentration ellipse.
+
+```
 NB.RandN......................................................................
 
 NB. draw values from a multivariate normal distribution
@@ -71,6 +166,11 @@ ncoord=. M +"1 (%:k) * R MP"(2 1) coord NB. transform the std form ellipse into 
 )
 
 cocurrent 'base'
+```
+
+## Gaussian Mixture Model
+
+```
 NB.GMM.......................................................................
 
 NB. make a multivariate normal distribution with mean 1{y and covariance 2{y
@@ -283,3 +383,6 @@ draw_class"0 i.#class
 draw_estimate"0 i.#mode
 pd 'show'
 )
+```
+
+
