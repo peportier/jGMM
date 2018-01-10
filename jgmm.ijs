@@ -1,3 +1,20 @@
+0 : 0
+Copyright 2018 Pierre-Edouard Portier
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+)
+
+
 load 'plot trig numeric'
 
 NB.utils......................................................................
@@ -12,6 +29,8 @@ id_z_=: =@i.              NB. identity matrix of size y
 MP_z_=: +/ . *            NB. matrix product
 det_z_=: -/ . *           NB. determinant
 QF_z_=: ] MP"1 [ MP"2 1 ] NB. quadratic form
+
+
 NB.RandN......................................................................
 
 NB. draw values from a multivariate normal distribution
@@ -71,6 +90,8 @@ ncoord=. M +"1 (%:k) * R MP"(2 1) coord NB. transform the std form ellipse into 
 )
 
 cocurrent 'base'
+
+
 NB.GMM.......................................................................
 
 NB. make a multivariate normal distribution with mean 1{y and covariance 2{y
@@ -92,7 +113,7 @@ truth=: perm { isomode #~ ". }: , ([: ,&'),' [: '(#x'&, ":)"(0) isomode
 )
 
 initdataset=: monad define
-mode=: ~.,>class
+mode=: ;class
 iclass=: (mode&notin)each class NB. modes not in a class ("Inverse" of class) 
 K=: #mode
 dim=:{:$X
@@ -105,6 +126,14 @@ teacher=: (truth&([: I. [: +./ ="1 0)each class) rsel each y
 )
 
 dataset1=: 3 : 0 
+mkdataset (50;(0 2);2 2$0.5 0 0 0.5),:(50;(_2 4);2 2$1 0.5 0.5 1)
+nbclass=: 2
+trueclass=: class=: (,0);(,1)
+initdataset''
+initteacher (0;0)
+)
+
+dataset2=: 3 : 0 
 mkdataset (50;(0 2);2 2$0.5 0 0 0.5),:(1000;(_0.5 2);2 2$3 0.6 0.6 1)
 nbclass=: 2
 trueclass=: class=: (,0);(,1)
@@ -112,7 +141,7 @@ initdataset''
 initteacher (10;200)
 )
 
-dataset2=: 3 : 0
+dataset3=: 3 : 0
 mkdataset (25;( 3  9);2 2$0.5 0 0 1),(20;(10  6);2 2$0.5 0 0 1),(5;(17 16);2 2$0.5 0 0 1),(20;( 3 12);2 2$1 0 0 0.5),(20;(12  6);2 2$1 0 0 0.5),:(10;(17 13);2 2$1 0 0 0.5)
 nbclass=: 2
 trueclass=: class=: (0 1 2);(3 4 5)
@@ -120,40 +149,42 @@ initdataset''
 initteacher (25;25)
 )
 
-NB. Compute Initial Means à la kmeans++
-CIM=: (],rndcenter)^:(]`(<:@:[)`(,:@:seed@:]))
-seed=: {~ ?@#
-NB. generate x rnd integers in i.#y with probability proportional to list of weights y
-wghtprob=: 1&$: :((% {:)@:(+/\)@:] I. [ ?@$ 0:)"0 1
-dist=: +/&.:*:@:-"1
-rndcenter=: [ {~ [: wghtprob [: <./ dist/~
-
-NB. Update F, the Fuzzy to crisp association between data and models,
-NB. given the prior knowledge of a teacher
-UF=: monad define
-if. #,>teacher do.
-toprob=. [: (%"1+/)@as {
-merge=. (<@;)"1 @: |:
-tocp=. 1 : '([: ((,@:u) ; (<@,)) CP)"1' NB. apply u to the cartesian product of x and y
-m0=. merge > class  (toprob&F) tocp each teacher
-m1=. merge > iclass (0:"0)     tocp each teacher
-F=: F ((>@{.@])`(>@{:@])`([))} merge m0,:m1
-end.
+end0=: monad define
+n=. ". 'n',":y
+destroy__n''
 )
 
-init=: monad define
-t=:0 NB. time
-M=: K CIM X
-C0=: (+/%#) */~"1 (] -"1 +/%#) X
-('detmin';'detmax')=: (1e_4&* ; 1e4&*) det C0
-CSensor=: C0%25 NB. covariance corresponding to the sensor precision
-C=: K#,:C0
-F=: K#,:(#X)#%K NB. initial Fuzzyness
-UF''
-NB.F=: (="1 0 /:~@~.) truth NB. perfect teacher
-sinned=: $0
-conv=:0 NB. convergence, boolean
+end=: monad define
+end0"0 ;trueclass
 )
+
+
+class_color=:'blue';'red'
+class_style=:'markersize 0.1';'markersize 0.1'
+
+plot_class=: monad define
+color=: >y{class_color
+style=: >y{class_style
+plot_mode"0 >y{trueclass
+)
+
+plot_mode=: monad define
+obj=. ". 'n',":y
+dat=. ". 'x',":y
+pd 'color ',color
+pd 'type line ; pensize 3'
+pd cellipse__obj''
+pd 'type marker ; markers circle'
+pd style
+pd <"1 |: dat
+)
+
+plot_dataset=: monad define
+pd 'reset'
+plot_class"0 i.#trueclass
+pd 'show'
+)
+
 
 iter=: monad define
 N=: +/"1 F
@@ -180,10 +211,65 @@ conv=: (1e_1 tconv M,:PM) *. 1e_2 tconv C,:PC
 t=: >:t
 )
 
+
+NB. Compute Initial Means à la kmeans++
+CIM=: (],rndcenter)^:(]`(<:@:[)`(,:@:seed@:]))
+seed=: {~ ?@#
+NB. generate x rnd integers in i.#y with probability proportional to list of weights y
+wghtprob=: 1&$: :((% {:)@:(+/\)@:] I. [ ?@$ 0:)"0 1
+dist=: +/&.:*:@:-"1
+rndcenter=: [ {~ [: wghtprob [: <./ dist/~
+
+init=: monad define
+t=:0 NB. time
+M=: K CIM X
+C0=: (+/%#) */~"1 (] -"1 +/%#) X
+('detmin';'detmax')=: (1e_4&* ; 1e4&*) det C0
+CSensor=: C0%25 NB. covariance corresponding to the sensor precision
+C=: K#,:C0
+F=: K#,:(#X)#%K NB. initial Fuzzyness
+UF''
+NB.F=: (="1 0 /:~@~.) truth NB. perfect teacher
+sinned=: $0
+conv=:0 NB. convergence, boolean
+)
+
+
+NB. Update F, the Fuzzy to crisp association between data and models,
+NB. given the prior knowledge of a teacher
+UF=: monad define
+if. #,>teacher do.
+toprob=. [: (%"1+/)@as {
+merge=. (<@;)"1 @: |:
+tocp=. 1 : '([: ((,@:u) ; (<@,)) CP)"1' NB. apply u to the cartesian product of x and y
+m0=. merge > class  (toprob&F) tocp each teacher
+m1=. merge > iclass (0:"0)     tocp each teacher
+F=: F ((>@{.@])`(>@{:@])`([))} merge m0,:m1
+end.
+)
+
+
 run=: monad define
 while. (-.conv) *. t<100 do. iter'' end.
 CE=: - +/^:2 > ([: (* ^.) [: +/ {&F) each class NB. classification entropy
 PRAUC''
+)
+
+PRAUC=: monad define NB. area under the precision-recall curve
+LR=:(%"1 +/)PDF NB. likelihood ratios
+mask=: 0 (;teacher)} 1 #~ #truth NB. to remove the data points known to the teacher
+LR=: mask #"1 LR
+class0=: +./ (mask#truth) ="1 0 >{.trueclass
+TP=: 3 : '+/(+./ (>0{class) { LR>y) *. class0'
+FP=: 3 : '+/(+./ (>0{class) { LR>y) *. -.class0'
+FN=: 3 : '(+/class0)-TP y'
+precision=: TP % TP + FP
+recall=: TP % TP + FN
+clean=. (([: ~. {."1) |:@,: {."1 >.//. {:"1) NB. for equal values of recall keep the greater precision
+NB. data for the parametric precision-recall curve. For recall 0 the precision is 1.
+AUCData=: clean 0 1 ,~ }: (recall,precision)"0 steps 0 1 100
+AUC=: +/ 2 (|@-/ (-:@*/@[ + {.@[ * ]) {:@{.)\ AUCData NB. area under the PR curve
+NB.'stick,line' plot <"1|:AUCData
 )
 
 metarun0=: monad define
@@ -200,6 +286,24 @@ metarun0^:9''
 NB. keep the results of the run with minimum classification entropy
 ('M';'C';'CE';'AUC')=: ((i. <./) LCE)&{ each LM;LC;LCE;LAUC
 )
+
+
+plot_estimate=: monad define
+n=. conew 'RandN'
+create__n (y{M);(y{C)
+pd 'color green'
+pd 'type line ; pensize 3'
+pd cellipse__n''
+destroy__n''
+)
+
+plot_all=: monad define
+pd 'reset'
+plot_class"0 i.#trueclass
+plot_estimate"0 i.#mode
+pd 'show'
+)
+
 
 metarun2=: monad define
 mkclass=: ([: i. each ;/) +each ([: ;/ 0: , [: }: +/\)
@@ -221,65 +325,3 @@ end.
 ('M';'C';'CE';'AUC';'class';'mode')=: >@(((i. <./) >BCE)&{) each BM;BC;BCE;BAUC;BClass;<BMode
 )
 
-PRAUC=: monad define NB. area under the precision-recall curve
-LR=:(%"1 +/)PDF NB. likelihood ratios
-mask=: 0 (;teacher)} 1 #~ #truth NB. to remove the data points known to the teacher
-LR=: mask #"1 LR
-class0=: +./ (mask#truth) ="1 0 >{.trueclass
-TP=: 3 : '+/(+./ (>0{class) { LR>y) *. class0'
-FP=: 3 : '+/(+./ (>0{class) { LR>y) *. -.class0'
-FN=: 3 : '(+/class0)-TP y'
-precision=: TP % TP + FP
-recall=: TP % TP + FN
-clean=. (([: ~. {."1) |:@,: {."1 >.//. {:"1) NB. for equal values of recall keep the greater precision
-NB. data for the parametric precision-recall curve. For recall 0 the precision is 1.
-AUCData=: clean 0 1 ,~ }: (recall,precision)"0 steps 0 1 100
-AUC=: +/ 2 (|@-/ (-:@*/@[ + {.@[ * ]) {:@{.)\ AUCData NB. area under the PR curve
-NB.'stick,line' plot <"1|:AUCData
-)
-
-end0=: monad define
-n=. ". 'n',":y
-destroy__n''
-)
-
-end=: monad define
-end0"0 mode
-)
-
-class_color=:'blue';'red'
-class_style=:'markersize 0.1';'markersize 0.1'
-estimate_color=:'green';'yellow'
-
-draw_class=: monad define
-color=: >y{class_color
-style=: >y{class_style
-draw_mode"0 >y{trueclass
-)
-
-draw_mode=: monad define
-obj=. ". 'n',":y
-dat=. ". 'x',":y
-pd 'color ',color
-pd 'type line ; pensize 3'
-pd cellipse__obj''
-pd 'type marker ; markers circle'
-pd style
-pd <"1 |: dat
-)
-
-draw_estimate=: monad define
-n=. conew 'RandN'
-create__n (y{M);(y{C)
-pd 'color green'
-pd 'type line ; pensize 3'
-pd cellipse__n''
-destroy__n''
-)
-
-draw=: monad define
-pd 'reset'
-draw_class"0 i.#class
-draw_estimate"0 i.#mode
-pd 'show'
-)
