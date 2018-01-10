@@ -1,6 +1,7 @@
 ```
 0 : 0
 Copyright 2018 Pierre-Edouard Portier
+http://liris.cnrs.fr/pierre-edouard.portier/
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +18,8 @@ limitations under the License.
 
 ```
 # JGMM, Mixture Model in J for Density Estimation and Classification
+
+Github link: [https://github.com/peportier/jGMM](https://github.com/peportier/jGMM)
 
 This is a derivation of Gaussian [Mixture Model](https://en.wikipedia.org/wiki/Mixture_model) in the [J programming language](http://jsoftware.com/).
 It follows the work of [Leonid Perlovsky](https://en.wikipedia.org/wiki/Leonid_Perlovsky) on [Dynamic Logic](http://www.springer.com/fr/book/9783642228292).
