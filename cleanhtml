@@ -1,0 +1,4 @@
+#!/bin/sh
+sed -e 's/<\/code>//' -e 's/<code>//' <$1 >tmp.html
+rm $1
+mv tmp.html $1
