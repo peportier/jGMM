@@ -19,7 +19,7 @@ limitations under the License.
 ```
 # JGMM, Mixture Model in J for Density Estimation and Classification
 
-* Homepage: [peportier.me](peportier.me)
+* Homepage: [peportier.me](http://peportier.me)
 * Github: [https://github.com/peportier/jGMM](https://github.com/peportier/jGMM)
 
 This is a derivation of Gaussian [Mixture Model](https://en.wikipedia.org/wiki/Mixture_model) in the [J programming language](http://jsoftware.com/).
