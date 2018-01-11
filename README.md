@@ -1,6 +1,6 @@
 # JGMM, Mixture Model in J for Density Estimation and Classification
 
-[Corresponding blog post](http://p6e7p7.freeshell.org/blog/201801_JGMM/)
+[Corresponding blog post](peportier.me/blog/201801_JGMM/)
 
 This is a derivation of Gaussian [Mixture Model](https://en.wikipedia.org/wiki/Mixture_model) in the [J programming language](http://jsoftware.com/).
 It follows the work of [Leonid Perlovsky](https://en.wikipedia.org/wiki/Leonid_Perlovsky) on [Dynamic Logic](http://www.springer.com/fr/book/9783642228292).

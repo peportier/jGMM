@@ -1,7 +1,7 @@
 ```
 0 : 0
 Copyright 2018 Pierre-Edouard Portier
-p6e7p7.freeshell.org
+peportier.me
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ limitations under the License.
 ```
 # JGMM, Mixture Model in J for Density Estimation and Classification
 
-* Homepage: [http://p6e7p7.freeshell.org/](http://p6e7p7.freeshell.org/)
+* Homepage: [peportier.me](peportier.me)
 * Github: [https://github.com/peportier/jGMM](https://github.com/peportier/jGMM)
 
 This is a derivation of Gaussian [Mixture Model](https://en.wikipedia.org/wiki/Mixture_model) in the [J programming language](http://jsoftware.com/).
