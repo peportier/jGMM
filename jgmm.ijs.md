@@ -37,7 +37,6 @@ NB. if y is an empty array, return an empty list, otherwise, return y
 as_z_=: ]`(($0)"_)@.(0:e.$)
 B1_z_=: <"1               NB. rank-1 box
 CP_z_=:{@(,&<)            NB. cartesian product
-notin_z_=: [ {~ [: I.@:-. [ e."0 1 ] NB. elements of x not in y
 
 id_z_=: =@i.              NB. identity matrix of size y
 MP_z_=: +/ . *            NB. matrix product
@@ -222,7 +221,7 @@ truth=: perm { isomode #~ ". }: , ([: ,&'),' [: '(#x'&, ":)"(0) isomode
 
 initdataset=: monad define
 mode=: ;class
-iclass=: (mode&notin)each class NB. modes not in a class ("Inverse" of class) 
+iclass=: (mode&-.)each class NB. modes not in a class ("Inverse" of class) 
 K=: #mode
 dim=:{:$X
 )
